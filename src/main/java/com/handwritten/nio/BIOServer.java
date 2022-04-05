@@ -1,9 +1,10 @@
-package com.handwritten;
+package com.handwritten.nio;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -37,7 +38,30 @@ public class BIOServer {
               ThreadFactory threadFactory,
               RejectedExecutionHandler handler
             */
-//            new ThreadPoolExecutor(2, 4, 5000, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(10), );
+            ThreadPoolExecutor poolExecutor = new ThreadPoolExecutor(2,
+                    4,
+                    5000,
+                    TimeUnit.SECONDS,
+                    new ArrayBlockingQueue<Runnable>(10),
+                    new ThreadFactory() {
+                        @Override
+                        public Thread newThread(Runnable r) {
+                            Thread thread = new Thread(r);
+                            thread.setName("Executor");
+                            return null;
+                        }
+                    },
+                    new ThreadPoolExecutor.AbortPolicy());
+            poolExecutor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        handler(clientSocket);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
         }
     }
 
